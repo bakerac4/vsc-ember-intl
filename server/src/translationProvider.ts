@@ -34,7 +34,7 @@ export class TranslationProvider {
 		urls.forEach(url => {
 			const buffer = readFileSync(url.fsPath);
 			const content = buffer.toString();
-			const doc = TextDocument.create(url.path, 'html', 1, content);
+			const doc = TextDocument.create(url.path, 'hbs', 1, content);
 			const wrap = this.getDocument(doc);
 			this.doValidate(wrap, false);
 		});
@@ -383,13 +383,13 @@ export class TranslationProvider {
 	}
 
 	private isHtmlFile(textDocument: TextDocument): boolean {
-		return textDocument.languageId === 'html';
+		return textDocument.languageId === 'hbs';
 	}
 
 	private doValidate(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {
 
 		let text = wrap.document.getText();
-		let pattern = /i18n.+["|']@@(.+?)["|']/g;
+		let pattern = /i18n.+["|']{{t(.+?)["|']/g;
 		let m: RegExpExecArray | null;
 
 		const trans = this.getSupportedTranslations(wrap.url);

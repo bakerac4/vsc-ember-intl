@@ -7,7 +7,7 @@ export class FileController {
 	constructor() { }
 
 	public processAngularFile(callback: (projects: Project[]) => void): void {
-		workspace.findFiles('**/angular.json', 'node_modules', 1).then(res => {
+		workspace.findFiles('**/translations.json', 'node_modules', 1).then(res => {
 			if (res.length > 0) {
 				const projects = ProjectController.getProjects(res[0]);
 				callback(projects);
@@ -19,7 +19,7 @@ export class FileController {
 		let workspaceFolder = workspace.workspaceFolders[0].uri.path;
 		projects.forEach(project => {
 			const url = `${workspaceFolder}/${project.root}`;
-			workspace.findFiles(new RelativePattern(url, '**/*.html'), 'node_modules').then(res => {
+			workspace.findFiles(new RelativePattern(url, '**/*.hbs'), 'node_modules').then(res => {
 				const urls = res.map(r => <any>{
 					path: r.path,
 					fsPath: r.fsPath

@@ -35,7 +35,7 @@ export async function activate(context: ExtensionContext) {
 
 	let clientOptions: LanguageClientOptions = {
 		documentSelector: [
-			{ scheme: 'file', language: 'html' },
+			{ scheme: 'file', language: 'hbs' },
 			{ scheme: 'file', language: 'xml' }
 		],
 		synchronize: {
@@ -76,28 +76,28 @@ export async function activate(context: ExtensionContext) {
 
 	});
 
-	languages.registerHoverProvider({ scheme: 'file', language: 'html' }, {
+	languages.registerHoverProvider({ scheme: 'file', language: 'hbs' }, {
 		provideHover: hoverController.getHover.bind(hoverController)
 	});
 
-	languages.registerDefinitionProvider({ scheme: 'file', language: 'html' }, {
+	languages.registerDefinitionProvider({ scheme: 'file', language: 'hbs' }, {
 		provideDefinition: definitionController.getDefinition.bind(definitionController)
 	});
 
-	languages.registerReferenceProvider({ scheme: 'file', language: 'html' }, {
+	languages.registerReferenceProvider({ scheme: 'file', language: 'hbs' }, {
 		provideReferences: referencesController.getReferences.bind(referencesController)
 	});
 
-	languages.registerCodeActionsProvider({ scheme: 'file', language: 'html' }, {
+	languages.registerCodeActionsProvider({ scheme: 'file', language: 'hbs' }, {
 		provideCodeActions: codeActionsController.getActions.bind(codeActionsController)
 	});
 
-	languages.registerRenameProvider({ scheme: 'file', language: 'html' }, {
+	languages.registerRenameProvider({ scheme: 'file', language: 'hbs' }, {
 		provideRenameEdits: renameController.rename.bind(renameController),
 		prepareRename: renameController.prepareRename.bind(renameController)
 	});
 
-	languages.registerCompletionItemProvider({ scheme: 'file', language: 'html' }, {
+	languages.registerCompletionItemProvider({ scheme: 'file', language: 'hbs' }, {
 		provideCompletionItems: completionItemController.getItems.bind(completionItemController)
 	});
 
