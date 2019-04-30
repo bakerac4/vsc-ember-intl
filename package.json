@@ -19,7 +19,7 @@
         "vscode": "^1.25.0"
     },
     "activationEvents": [
-        "onLanguage:hbs",
+        "onLanguage:handlebars",
         "onLanguage:xml"
     ],
     "main": "./client/out/extension",

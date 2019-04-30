@@ -106,6 +106,7 @@ export class TranslationProvider {
 
 	public calculateHover(url: string, position: number): any {
 		const doc = this.getDocument(url);
+		console.log(`Doc: ${doc}`);
 		if (doc) {
 			const activeWords = <IdRange[]>this.words[doc.url];
 			if (activeWords && activeWords.length > 0) {
@@ -378,12 +379,12 @@ export class TranslationProvider {
 	}
 
 	private isTranslationFile(textDocument: TextDocument): boolean {
-		return textDocument.languageId === 'xml' &&
-			textDocument.uri.endsWith('.xlf');
+		return textDocument.languageId === 'json' &&
+			textDocument.uri.endsWith('.json');
 	}
 
 	private isHtmlFile(textDocument: TextDocument): boolean {
-		return textDocument.languageId === 'hbs';
+		return textDocument.languageId === 'handlebars';
 	}
 
 	private doValidate(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {

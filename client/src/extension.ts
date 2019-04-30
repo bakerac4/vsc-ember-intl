@@ -22,11 +22,12 @@ export async function activate(context: ExtensionContext) {
 	let serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);
-	let debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+	let debugOptions = { execArgv: ['--nolazy', '--inspect-brk=6009'] };
 
 	let serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: {
+			port: 6009,
 			module: serverModule,
 			transport: TransportKind.ipc,
 			options: debugOptions
@@ -35,7 +36,7 @@ export async function activate(context: ExtensionContext) {
 
 	let clientOptions: LanguageClientOptions = {
 		documentSelector: [
-			{ scheme: 'file', language: 'hbs' },
+			{ scheme: 'file', language: 'handlebars' },
 			{ scheme: 'file', language: 'xml' }
 		],
 		synchronize: {
@@ -76,28 +77,28 @@ export async function activate(context: ExtensionContext) {
 
 	});
 
-	languages.registerHoverProvider({ scheme: 'file', language: 'hbs' }, {
+	languages.registerHoverProvider({ scheme: 'file', language: 'handlebars' }, {
 		provideHover: hoverController.getHover.bind(hoverController)
 	});
 
-	languages.registerDefinitionProvider({ scheme: 'file', language: 'hbs' }, {
+	languages.registerDefinitionProvider({ scheme: 'file', language: 'handlebars' }, {
 		provideDefinition: definitionController.getDefinition.bind(definitionController)
 	});
 
-	languages.registerReferenceProvider({ scheme: 'file', language: 'hbs' }, {
+	languages.registerReferenceProvider({ scheme: 'file', language: 'handlebars' }, {
 		provideReferences: referencesController.getReferences.bind(referencesController)
 	});
 
-	languages.registerCodeActionsProvider({ scheme: 'file', language: 'hbs' }, {
+	languages.registerCodeActionsProvider({ scheme: 'file', language: 'handlebars' }, {
 		provideCodeActions: codeActionsController.getActions.bind(codeActionsController)
 	});
 
-	languages.registerRenameProvider({ scheme: 'file', language: 'hbs' }, {
+	languages.registerRenameProvider({ scheme: 'file', language: 'handlebars' }, {
 		provideRenameEdits: renameController.rename.bind(renameController),
 		prepareRename: renameController.prepareRename.bind(renameController)
 	});
 
-	languages.registerCompletionItemProvider({ scheme: 'file', language: 'hbs' }, {
+	languages.registerCompletionItemProvider({ scheme: 'file', language: 'handlebars' }, {
 		provideCompletionItems: completionItemController.getItems.bind(completionItemController)
 	});
 
