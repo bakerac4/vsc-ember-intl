@@ -8,16 +8,42 @@ export class TranslationParser {
 	private sourceRegex = /<source>((.|\s|\n)*?)<\/source>/m;
 	private targetRegex = /<target>((.|\s|\n)*?)<\/target>/m;
 
-	public getTransUnits(document: DocumentWrapper): TransUnit[] {
+	public getTransUnits(document: DocumentWrapper): any {
 		try {
-			let unitBlocks = this.getTransUnitsBlocks(document);
-			let units = this.processUnitBlocks(document, unitBlocks);
-			return units;
+			// let unitBlocks = this.getTransUnitsBlocks(document);
+			// let units = this.processUnitBlocks(document, unitBlocks);
+			const text = document.document.getText();
+			const json = this.flattenJSON(JSON.parse(text));
+			return json;
 		}
 		catch (ex) {
 			console.log(ex.message);
 		}
 		return [];
+	}
+
+	private flattenJSON(data) {
+		var result = {};
+		function recurse (cur, prop) {
+			if (Object(cur) !== cur) {
+				result[prop] = cur;
+			} else if (Array.isArray(cur)) {
+				 for(var i=0, l=cur.length; i<l; i++)
+					 recurse(cur[i], prop + "[" + i + "]");
+				if (l == 0)
+					result[prop] = [];
+			} else {
+				var isEmpty = true;
+				for (var p in cur) {
+					isEmpty = false;
+					recurse(cur[p], prop ? prop+"."+p : p);
+				}
+				if (isEmpty && prop)
+					result[prop] = {};
+			}
+		}
+		recurse(data, "");
+		return result;
 	}
 
 	private getTransUnitsBlocks(wrap: DocumentWrapper): RegExpExecArray[] {

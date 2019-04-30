@@ -1,5 +1,6 @@
+import { workspace, Uri } from 'vscode';
 export interface Project {
-    root: string;
+    root: Uri;
     label: string;
     exclude: string[];
     translation: ProjectTranslation;

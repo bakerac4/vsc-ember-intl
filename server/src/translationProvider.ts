@@ -118,10 +118,10 @@ export class TranslationProvider {
 					const trans = this.getSupportedTranslations(doc.url);
 					if (trans.length > 0) {
 						const values = trans.map(t => {
-							const findTrans = t.units.find(u => u.id === expectedWord.id);
+							const findTrans = t.units[expectedWord.id];
 							return <HoverInfo>{
 								label: t.project.label,
-								translation: (findTrans && findTrans.target) || '`no translation`',
+								translation: findTrans || '`no translation`',
 								goToCommandArgs: {
 									uri: t.uri,
 									range: findTrans && findTrans.targetRange
@@ -390,7 +390,7 @@ export class TranslationProvider {
 	private doValidate(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {
 
 		let text = wrap.document.getText();
-		let pattern = /i18n.+["|']{{t(.+?)["|']/g;
+		let pattern = /{{t ["|'](.+?)["|']/g;
 		let m: RegExpExecArray | null;
 
 		const trans = this.getSupportedTranslations(wrap.url);
@@ -514,14 +514,7 @@ export class TranslationProvider {
 	}
 
 	private isFileBelongsProject(project: Project, uri: string): boolean {
-		if (uri.indexOf(project.root) < 0) {
-			return false;
-		}
-		const fileShouldBeExcluded = project.exclude.some(e => {
-			const matched = matcher.isMatch(uri, e + '*');
-			return matched;
-		});
-		return !fileShouldBeExcluded;
+		return true;
 	}
 
 	private getDocument(doc: TextDocument | string): DocumentWrapper {

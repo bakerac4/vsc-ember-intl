@@ -11,22 +11,15 @@ export class ProjectController {
 
 	identifyProjects(uri: Uri): Project[] {
 		let projects: Project[] = [];
-		const ngConfig = readJsonSync(uri.fsPath);
-		Object.keys(ngConfig.projects).forEach(project => {
-
-			const appConfigPath = this.extractAppConfigPath(ngConfig.projects[project]);
-			if (appConfigPath) {
-				try {
-					projects.push({
-						root: this.extractRootPath(ngConfig.projects[project]),
-						label: project,
-						exclude: this.extractExcluded(appConfigPath),
-						translation: this.extractTranslationFile(ngConfig.projects[project])
-					});
-				}
-				catch  { }
-			}
-		});
+		try {
+			projects.push({
+				root: uri,
+				label: 'project',
+				exclude: [],
+				translation: this.extractTranslationFile()
+			});
+		}
+		catch  { }
 		return projects;
 	}
 
@@ -34,28 +27,21 @@ export class ProjectController {
 		return ngConfig.root || ngConfig.sourceRoot;
 	}
 
-	private extractExcluded(configPath: string): string[] {
-		if (!!configPath) {
-			const appSettings = readJsonSync(`${workspace.rootPath}\\${configPath}`);
-			return appSettings.exclude || [];
-		}
-		return [];
-	}
+	// private extractExcluded(configPath: string): string[] {
+	// 	if (!!configPath) {
+	// 		const appSettings = readJsonSync(`${workspace.rootPath}\\${configPath}`);
+	// 		return appSettings.exclude || [];
+	// 	}
+	// 	return [];
+	// }
 
-	private extractTranslationFile(ngConfig: any): ProjectTranslation {
+	private extractTranslationFile(): ProjectTranslation {
 		let translation: ProjectTranslation = null;
-		const configurations = ngConfig.architect.build.configurations;
-		Object.keys(configurations).forEach(key => {
-			const config = configurations[key];
-			if (config['i18nFile'] !== undefined) {
-				translation = {
-					i18nFile: config.i18nFile,
-					i18nFormat: config.i18nFormat,
-					i18nLocale: config.i18nLocale
-				};
-				return false;
-			}
-		});
+		translation = {
+			i18nFile: 'en-us.json',
+			i18nFormat:'json',
+			i18nLocale: 'en-us'
+		};
 		return translation;
 	}
 

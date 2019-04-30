@@ -7,7 +7,7 @@ export class FileController {
 	constructor() { }
 
 	public processAngularFile(callback: (projects: Project[]) => void): void {
-		workspace.findFiles('**/translations.json', 'node_modules', 1).then(res => {
+		workspace.findFiles('package.json', 'node_modules', 1).then(res => {
 			if (res.length > 0) {
 				const projects = ProjectController.getProjects(res[0]);
 				callback(projects);
@@ -30,7 +30,7 @@ export class FileController {
 	}
 
 	public processTranslations(callback: () => void): void {
-		workspace.findFiles('**/*.xlf', 'node_modules')
+		workspace.findFiles('translations/**/*.json', 'node_modules')
 			.then(
 				files => {
 					this.processTranslationFiles(files, callback);

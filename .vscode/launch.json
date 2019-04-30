@@ -7,7 +7,7 @@
 			"request": "launch",
 			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
-			"args": ["--extensionDevelopmentPath=${workspaceRoot}", "--port=3000"],
+			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
 			"outFiles": ["${workspaceRoot}/client/out/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
@@ -20,6 +20,10 @@
 			"name": "Attach to Server",
 			"port": 6009,
 			"restart": true,
+			"stopOnEntry": true,
+			"protocol": "inspector",
+			"timeout": 1000000,
+			"trace": true,
 			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]
 		},
 		{
