@@ -1,15 +1,15 @@
 {
-    "name": "angular-i18n-validator-server",
-    "description": "i18n validation for Angular 6 project",
+    "name": "vsc-ember-intl-server",
+    "description": "i18n validation for Ember intl",
     "version": "1.0.0",
-    "author": "Oleksandr Reznichenko",
+    "author": "Adam Baker",
     "license": "MIT",
     "engines": {
         "node": "*"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/rettoua/angular-i18n-validator"
+        "url": "https://github.com/bakerac4/vsc-ember-intl"
     },
     "dependencies": {
         "matcher": "^1.1.1",
