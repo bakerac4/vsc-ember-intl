@@ -2,8 +2,7 @@ import { Range } from 'vscode-languageserver';
 
 export interface TransUnit {
 	id: string;
-	source: string;
-	target: string;
+	value: string;
 	sourceIndex: number;
 	targetIndex: number;
 	targetRange: Range;

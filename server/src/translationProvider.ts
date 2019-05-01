@@ -46,7 +46,7 @@ export class TranslationProvider {
 			if (units.length === 0) { return; }
 
 			const edits = units.map(u => TextEdit.replace(u.range, ''));
-			return TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(t.documentUri, null), edits)
+			return TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(t.documentUri, null), edits);
 		}).filter(value => !!value);
 
 		documentEdits = documentEdits.concat(Object.keys(this.words).map(url => {
@@ -72,6 +72,11 @@ export class TranslationProvider {
 			const trans = this.translations.find(t => t.uri === command.uri);
 			if (trans) {
 				const documentUri = trans.documentUri;
+				const doc = this.getDocument(documentUri);
+				// const object = JSON.parse(doc.document.getText());
+				const key = command.word;
+				const value = command.source;
+
 				let workspaceEdit = {
 					documentChanges:
 						[{
@@ -82,7 +87,7 @@ export class TranslationProvider {
 							},
 							edits: [
 								{
-									newText: TransUnitBuilder.createTransUnit(command.word, command.source),
+									newText: TransUnitBuilder.createTransUnit(key, value),
 									range: {
 										start: trans.insertPosition,
 										end: trans.insertPosition
@@ -118,10 +123,11 @@ export class TranslationProvider {
 					const trans = this.getSupportedTranslations(doc.url);
 					if (trans.length > 0) {
 						const values = trans.map(t => {
-							const findTrans = t.units[expectedWord.id];
+							const findTrans = t.units.find(u => u.id === expectedWord.id);
+						
 							return <HoverInfo>{
-								label: t.project.label,
-								translation: findTrans || '`no translation`',
+								label: t.name,
+								translation: (findTrans && findTrans.value) || '`no translation`',
 								goToCommandArgs: {
 									uri: t.uri,
 									range: findTrans && findTrans.targetRange
@@ -217,12 +223,12 @@ export class TranslationProvider {
 						let source: string = '';
 						let values = trans.map(t => {
 							const findTrans = t.units.find(u => u.id === expectedWord.id);
-							if (findTrans && findTrans.source) {
-								source = findTrans.source;
+							if (findTrans && findTrans.value) {
+								source = findTrans.value;
 							}
 							if (!findTrans) {
 								return <GenerateTranslation>{
-									title: `Generate translation unit for ${t.project.label}`,
+									title: `Generate translation unit for ${t.name}`,
 									name: 'rettoua.generate_translation',
 									commandArgs: [<GenerateTranslationCommand>{
 										word: expectedWord.id,
@@ -250,7 +256,7 @@ export class TranslationProvider {
 								title: `Remove translations and references for '${expectedWord.id}'`,
 								name: 'rettoua.remove_translations',
 								commandArgs: expectedWord.id
-							}
+							};
 							commands.push(removeCommand);
 						}
 						return commands;
@@ -324,7 +330,7 @@ export class TranslationProvider {
 	}
 
 	public getCompletionItems(url: string, position: number): any[] {
-		const doc = this.getDocument(url);
+		const doc = this. getDocument(url);
 		if (doc) {
 			const activeWords = <IdRange[]>this.words[doc.url];
 			if (activeWords && activeWords.length > 0) {
@@ -390,7 +396,7 @@ export class TranslationProvider {
 	private doValidate(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {
 
 		let text = wrap.document.getText();
-		let pattern = /{{t ["|'](.+?)["|']/g;
+		let pattern = /{{t ["|'](.+?)["|']}}/g;
 		let m: RegExpExecArray | null;
 
 		const trans = this.getSupportedTranslations(wrap.url);
@@ -428,15 +434,13 @@ export class TranslationProvider {
 				continue;
 			}
 
-			const missed = missingTranslations.map(m => m.project.label).join(', ');
-
 			let diagnostic: Diagnostic = {
 				severity: DiagnosticSeverity.Warning,
 				range: {
 					start: wrap.document.positionAt(m.index),
 					end: wrap.document.positionAt(m.index + m[0].length)
 				},
-				message: `Missed translation in '${missed}' project(-s)`
+				message: `Missed translation in project`
 			};
 
 			diagnostics.push(diagnostic);
@@ -455,12 +459,15 @@ export class TranslationProvider {
 		const insertPosition = wrap.document.positionAt(indexOfClosingBodyTags);
 		if (!existTrans) {
 			const proj = this.getProjectForTranslation(wrap.url);
+			const uri =  wrap.url.split('/');
+			const name = uri[uri.length - 1].split('.')[0];
 			const trans = <Translation>{
 				uri: wrap.url,
 				documentUri: wrap.document.uri,
 				units: units,
 				project: proj,
-				insertPosition: insertPosition
+				insertPosition: insertPosition,
+				name
 			};
 			this.translations.push(trans);
 		}
@@ -499,16 +506,8 @@ export class TranslationProvider {
 		if (projects.length === 0) {
 			return trans;
 		}
-		projects.forEach(p => {
-			const selectedTrans = this.translations.find(t => {
-				if (!t.project) {
-					return false;
-				}
-				return t.project.label === p.label;
-			});
-			if (selectedTrans) {
-				trans.push(selectedTrans);
-			}
+		this.translations.forEach(translation => {
+			trans.push(translation);
 		});
 		return trans;
 	}

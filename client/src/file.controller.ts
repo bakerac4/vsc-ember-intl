@@ -30,7 +30,7 @@ export class FileController {
 	}
 
 	public processTranslations(callback: () => void): void {
-		workspace.findFiles('translations/**/*.json', 'node_modules')
+		workspace.findFiles('translations/*.json', 'node_modules')
 			.then(
 				files => {
 					this.processTranslationFiles(files, callback);

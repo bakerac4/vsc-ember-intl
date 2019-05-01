@@ -7,4 +7,5 @@ export interface Translation {
 	units: TransUnit[];
 	project: Project;
 	insertPosition: Position;
+	name: string;
 }
