@@ -8,10 +8,11 @@ Supported features:
 - Validating `handlebar` templates against translation files
 - Hover Popup with showing available translation
 - `IntelliSense`
+- `Go To` particular translation file from the Hover Popup
+- `Generate translation unit(-s)` for a single or bulk translation units generating
+- `Remove translation` from both the template and the translation file
 
 Features planned but not yet supported:
-- `Go To` particular translation file from the Hover Popup
 - `Go To Definition` from html template to relevant translation file
 - `Find All References` for showing translation unit usages across `html` templates
 - `Rename` applys changes for both `html` template and translation file
-- `Generate translation unit(-s)` for a single or bulk translation units generating
