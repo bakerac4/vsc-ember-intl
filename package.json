@@ -4,7 +4,7 @@
     "description": "i18n validation for Ember cli project w/ ember-intl",
     "author": "Adam Baker",
     "license": "MIT",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "repository": {
         "type": "git",
         "url": "https://github.com/bakerac4/vsc-ember-intl"
