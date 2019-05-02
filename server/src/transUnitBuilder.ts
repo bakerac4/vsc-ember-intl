@@ -6,6 +6,7 @@ export class TransUnitBuilder {
 	}
 	
 	public build(id: string, source?: string): string {
-		return `${id}: ${source}`;
+		return `"${id}": "${source}",
+		`;
 	}
 }

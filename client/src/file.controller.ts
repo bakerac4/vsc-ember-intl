@@ -1,4 +1,4 @@
-import { workspace, Uri, RelativePattern } from 'vscode';
+import { workspace, Uri, RelativePattern, languages } from 'vscode';
 import { ProjectController } from './project.controller';
 import { Project } from './project.model';
 

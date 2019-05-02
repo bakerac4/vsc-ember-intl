@@ -1,4 +1,4 @@
-import { TextDocument, DiagnosticSeverity, Diagnostic, Connection, TextDocuments, Range, WorkspaceEdit, RegistrationRequest, TextEdit, TextDocumentEdit, TextDocumentIdentifier, VersionedTextDocumentIdentifier } from 'vscode-languageserver';
+import { Position, TextDocument, DiagnosticSeverity, Diagnostic, Connection, TextDocuments, Range, WorkspaceEdit, RegistrationRequest, TextEdit, TextDocumentEdit, TextDocumentIdentifier, VersionedTextDocumentIdentifier } from 'vscode-languageserver';
 import { Project } from './project.model';
 
 import matcher = require('matcher');
@@ -11,6 +11,7 @@ import { HoverInfo } from './models/HoverInfo';
 import { readFileSync } from 'fs';
 import { uriToFilePath, FileSystem } from 'vscode-languageserver/lib/files';
 import { TransUnitBuilder } from './TransUnitBuilder';
+import * as JsonLanguageService from 'vscode-json-languageservice';
 import { relative } from 'path';
 
 export class TranslationProvider {
@@ -67,37 +68,87 @@ export class TranslationProvider {
 		this.connection.workspace.applyEdit(workspaceEdit);
 	}
 
+	findKeyInJsonDoc(key, properties) {
+		return properties.find(item => {
+			return item.value === key;
+		});
+	}
+
+	findValForGenerate(properties, path) {
+		const key = path.shift();
+		const node = properties.find(item => item.keyNode.value === key);
+
+		if (node && node.valueNode && node.valueNode.properties && node.valueNode.properties.length) {
+			let value = this.findValForGenerate(node.valueNode.properties, path);
+			if (value) {
+				return value;
+			} else {
+				return node;
+			}
+		} else {
+			return;
+		}
+	}
+
+	findValForHover(properties, path) {
+		const key = path.shift();
+		const node = properties.find(item => item.keyNode.value === key);
+
+		if (node && node.valueNode && node.valueNode.properties && node.valueNode.properties.length) {
+			let value = this.findValForHover(node.valueNode.properties, path);
+			if (value) {
+				return value;
+			} else {
+				return node;
+			}
+		} else {
+			return node.valueNode;
+		}
+	}
+
+	async generateTranslation(command) {
+		const trans = this.translations.find(t => t.uri === command.uri);
+		if (trans) {
+			const documentUri = trans.documentUri;
+			let ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
+			const doc = this.getDocument(documentUri);
+			const jsonDoc: any = ls.parseJSONDocument(doc.document);
+			const keyArray = command.word.split('.');
+			const value = command.source;
+			const key = keyArray[keyArray.length - 1];
+			
+			const node = this.findValForGenerate(jsonDoc.root.properties, keyArray);
+			// let position = Position.create(0, 0);
+			// const list = await ls.doComplete(doc.document, position, jsonDoc);
+			// const object = JSON.parse(doc.document.getText());
+			
+
+			let workspaceEdit = {
+				documentChanges:
+					[{
+						uri: documentUri,
+						textDocument: {
+							version: null,
+							uri: documentUri
+						},
+						edits: [
+							{
+								newText: TransUnitBuilder.createTransUnit(key, value || ""),
+								range: {
+									start: doc.document.positionAt(node.valueNode.children[0].offset),
+									end: doc.document.positionAt(node.valueNode.children[0].offset)
+								}
+							}
+						]
+					}]
+			};
+			this.connection.workspace.applyEdit(workspaceEdit);
+		}
+	}
+
 	public onGenerateTranslations(args: GenerateTranslationCommand[]): void {
 		args.forEach(command => {
-			const trans = this.translations.find(t => t.uri === command.uri);
-			if (trans) {
-				const documentUri = trans.documentUri;
-				const doc = this.getDocument(documentUri);
-				// const object = JSON.parse(doc.document.getText());
-				const key = command.word;
-				const value = command.source;
-
-				let workspaceEdit = {
-					documentChanges:
-						[{
-							uri: documentUri,
-							textDocument: {
-								version: null,
-								uri: documentUri
-							},
-							edits: [
-								{
-									newText: TransUnitBuilder.createTransUnit(key, value),
-									range: {
-										start: trans.insertPosition,
-										end: trans.insertPosition
-									}
-								}
-							]
-						}]
-				};
-				this.connection.workspace.applyEdit(workspaceEdit);
-			}
+			this.generateTranslation(command);
 		});
 	}
 
@@ -123,14 +174,21 @@ export class TranslationProvider {
 					const trans = this.getSupportedTranslations(doc.url);
 					if (trans.length > 0) {
 						const values = trans.map(t => {
+							const ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
+							const tDoc = this.getDocument(t.documentUri);
+							const jsonDoc: any = ls.parseJSONDocument(tDoc.document);
 							const findTrans = t.units.find(u => u.id === expectedWord.id);
-						
+							const node = this.findValForHover(jsonDoc.root.properties, expectedWord.id.split('.'));
+							const start = tDoc.document.positionAt(node.offset + 1);
 							return <HoverInfo>{
 								label: t.name,
 								translation: (findTrans && findTrans.value) || '`no translation`',
 								goToCommandArgs: {
 									uri: t.uri,
-									range: findTrans && findTrans.targetRange
+									range: {
+										start,
+										end: tDoc.document.positionAt(node.offset + node.length - 1)
+									}
 								}
 							};
 						});
