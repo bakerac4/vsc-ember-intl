@@ -20,7 +20,8 @@
     },
     "activationEvents": [
         "onLanguage:handlebars",
-        "onLanguage:json"
+        "onLanguage:json",
+        "onLanguage:javascript"
     ],
     "main": "./client/out/extension",
     "contributes": {},

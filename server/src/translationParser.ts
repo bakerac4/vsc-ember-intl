@@ -1,7 +1,8 @@
-import { TextDocument, Range } from 'vscode-languageserver';
+import { TextDocument, Range, Position } from 'vscode-languageserver';
 import { TransUnit } from "./models/TransUnit";
 import { DocumentWrapper } from './translationProvider';
-
+import { readFileSync } from 'fs';
+import * as JsonLanguageService from 'vscode-json-languageservice';
 export class TranslationParser {
 	private splitUnitsRegex = /<trans-unit(.|\s|\n)*?<\/trans-unit>/gm;
 	private idRegex = /id=["|'](.+?)["|']/m;
@@ -12,10 +13,24 @@ export class TranslationParser {
 		try {
 			// let unitBlocks = this.getTransUnitsBlocks(document);
 			// let units = this.processUnitBlocks(document, unitBlocks);
-			const text = document.document.getText();
+			let doc = document.document;
+			let text = doc.getText();
+			let lineOffset = 0;
+			let characterOffset = 0;
+			if (document.document.languageId === 'javascript') {
+				lineOffset = 0;
+				characterOffset = 15;
+				text = document.document.getText({
+					start: { line: lineOffset, character: characterOffset },
+					end: { line: document.document.lineCount - 2, character: 1 }
+				});
+				doc = TextDocument.create('', 'json', 1, text);
+			}
 			// const translations = this.flattenJSON(JSON.parse(text));
 			const translations = this.generateTranslations(document, text);
-			return translations;
+			const ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
+			const jsonDoc: any = ls.parseJSONDocument(doc);
+			return { units: translations, jsonDoc, lineOffset, characterOffset };
 		}
 		catch (ex) {
 			console.log(ex.message);
@@ -24,7 +39,8 @@ export class TranslationParser {
 	}
 
 	private generateTranslations(document, text) {
-		const json = this.flattenJSON(JSON.parse(text));
+		const parsed = JSON.parse(text);
+		const json = this.flattenJSON(parsed);
 		return Object.keys(json).map(key => {
 			return {
 				id: key,

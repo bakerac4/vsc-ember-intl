@@ -37,7 +37,8 @@ export async function activate(context: ExtensionContext) {
 	let clientOptions: LanguageClientOptions = {
 		documentSelector: [
 			{ scheme: 'file', language: 'handlebars' },
-			{ scheme: 'file', language: 'json' }
+			{ scheme: 'file', language: 'json' },
+			{ scheme: 'file', language: 'javascript' }
 		],
 		synchronize: {
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')

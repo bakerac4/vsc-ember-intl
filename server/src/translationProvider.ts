@@ -1,4 +1,4 @@
-import { Position, TextDocument, DiagnosticSeverity, Diagnostic, Connection, TextDocuments, Range, WorkspaceEdit, RegistrationRequest, TextEdit, TextDocumentEdit, TextDocumentIdentifier, VersionedTextDocumentIdentifier } from 'vscode-languageserver';
+import { Position, TextDocument, DiagnosticSeverity, Diagnostic, Connection, TextDocuments, Range, WorkspaceEdit, RegistrationRequest, TextEdit, TextDocumentEdit, TextDocumentIdentifier, VersionedTextDocumentIdentifier, DocumentColorRequest } from 'vscode-languageserver';
 import { Project } from './project.model';
 
 import matcher = require('matcher');
@@ -45,8 +45,18 @@ export class TranslationProvider {
 		let documentEdits = this.translations.map(t => {
 			const units = t.units.filter(u => u.id === translationToRemove);
 			if (units.length === 0) { return; }
-
-			const edits = units.map(u => TextEdit.replace(u.range, ''));
+			const jsonDoc = t.document;
+			const tDoc = this.getDocument(t.documentUri);
+			const edits = units.map(u => {
+				const node = this.findValForHover(jsonDoc.root.properties, u.id.split('.'));
+				const start = tDoc.document.positionAt(node.parent.offset + t.characterOffset);
+				//+ 1 to account for comma at end
+				const end = tDoc.document.positionAt(node.parent.offset + node.parent.length + t.characterOffset + 1);
+				return TextEdit.replace({
+					start,
+					end 
+				}, '');
+			});
 			return TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(t.documentUri, null), edits);
 		}).filter(value => !!value);
 
@@ -101,8 +111,10 @@ export class TranslationProvider {
 			} else {
 				return node;
 			}
-		} else {
+		} else if (node && node.valueNode) {
 			return node.valueNode;
+		} else {
+			return;
 		}
 	}
 
@@ -110,14 +122,20 @@ export class TranslationProvider {
 		const trans = this.translations.find(t => t.uri === command.uri);
 		if (trans) {
 			const documentUri = trans.documentUri;
-			let ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
-			const doc = this.getDocument(documentUri);
-			const jsonDoc: any = ls.parseJSONDocument(doc.document);
+			const tDoc = this.getDocument(trans.documentUri);
+			const jsonDoc: any = trans.document;
+			
+						
+			// let ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
+			// const doc = this.getDocument(documentUri);
+			// const jsonDoc: any = ls.parseJSONDocument(doc.document);
 			const keyArray = command.word.split('.');
 			const value = command.source;
 			const key = keyArray[keyArray.length - 1];
 			
 			const node = this.findValForGenerate(jsonDoc.root.properties, keyArray);
+			const start = tDoc.document.positionAt(node.valueNode.children[0].offset + trans.characterOffset);
+			const end = tDoc.document.positionAt(node.valueNode.children[0].offset + trans.characterOffset);
 			// let position = Position.create(0, 0);
 			// const list = await ls.doComplete(doc.document, position, jsonDoc);
 			// const object = JSON.parse(doc.document.getText());
@@ -135,8 +153,8 @@ export class TranslationProvider {
 							{
 								newText: TransUnitBuilder.createTransUnit(key, value || ""),
 								range: {
-									start: doc.document.positionAt(node.valueNode.children[0].offset),
-									end: doc.document.positionAt(node.valueNode.children[0].offset)
+									start,
+									end
 								}
 							}
 						]
@@ -174,12 +192,12 @@ export class TranslationProvider {
 					const trans = this.getSupportedTranslations(doc.url);
 					if (trans.length > 0) {
 						const values = trans.map(t => {
-							const ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
 							const tDoc = this.getDocument(t.documentUri);
-							const jsonDoc: any = ls.parseJSONDocument(tDoc.document);
+							const jsonDoc: any = t.document;
 							const findTrans = t.units.find(u => u.id === expectedWord.id);
 							const node = this.findValForHover(jsonDoc.root.properties, expectedWord.id.split('.'));
-							const start = tDoc.document.positionAt(node.offset + 1);
+							const start = tDoc.document.positionAt(node.offset + 1 + t.characterOffset);
+							const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length - 1);
 							return <HoverInfo>{
 								label: t.name,
 								translation: (findTrans && findTrans.value) || '`no translation`',
@@ -187,7 +205,7 @@ export class TranslationProvider {
 									uri: t.uri,
 									range: {
 										start,
-										end: tDoc.document.positionAt(node.offset + node.length - 1)
+										end 
 									}
 								}
 							};
@@ -443,8 +461,9 @@ export class TranslationProvider {
 	}
 
 	private isTranslationFile(textDocument: TextDocument): boolean {
-		return textDocument.languageId === 'json' &&
-			textDocument.uri.endsWith('.json');
+		return (textDocument.languageId === 'json' &&
+			textDocument.uri.endsWith('.json')) || (textDocument.languageId === 'javascript' &&
+			textDocument.uri.endsWith('.js'));
 	}
 
 	private isHtmlFile(textDocument: TextDocument): boolean {
@@ -512,20 +531,27 @@ export class TranslationProvider {
 	private processTranslationFile(wrap: DocumentWrapper): void {
 		const existTrans = this.translations.find(t => t.uri === wrap.url);
 		const parser = new TranslationParser();
-		const units = parser.getTransUnits(wrap);
+		const { units, jsonDoc, lineOffset, characterOffset } = parser.getTransUnits(wrap);
 		const indexOfClosingBodyTags = wrap.document.getText().indexOf('</body>');
 		const insertPosition = wrap.document.positionAt(indexOfClosingBodyTags);
 		if (!existTrans) {
 			const proj = this.getProjectForTranslation(wrap.url);
-			const uri =  wrap.url.split('/');
-			const name = uri[uri.length - 1].split('.')[0];
+			const uri = wrap.url.split('/');
+			let name = uri[uri.length - 1].split('.')[0];
+			if (wrap.document.languageId === 'javascript') {
+				name = uri[uri.length - 2];
+			}
+			
 			const trans = <Translation>{
 				uri: wrap.url,
 				documentUri: wrap.document.uri,
 				units: units,
 				project: proj,
 				insertPosition: insertPosition,
-				name
+				name,
+				document: jsonDoc,
+				lineOffset,
+				characterOffset
 			};
 			this.translations.push(trans);
 		}

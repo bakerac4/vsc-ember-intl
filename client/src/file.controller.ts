@@ -36,6 +36,13 @@ export class FileController {
 					this.processTranslationFiles(files, callback);
 				},
 				r => console.log(`cannot find files: ${r.message}`)
+		);
+		workspace.findFiles('app/locales/**/translations.js', 'node_modules')
+			.then(
+				files => {
+					this.processTranslationFiles(files, callback);
+				},
+				r => console.log(`cannot find files: ${r.message}`)
 			);
 	}
 
