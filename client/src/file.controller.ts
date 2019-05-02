@@ -7,7 +7,7 @@ export class FileController {
 	constructor() { }
 
 	public processAngularFile(callback: (projects: Project[]) => void): void {
-		workspace.findFiles('package.json', 'node_modules', 1).then(res => {
+		workspace.findFiles('package.json', '{node_modules,dist,tmp,app}', 1).then(res => {
 			if (res.length > 0) {
 				const projects = ProjectController.getProjects(res[0]);
 				callback(projects);
@@ -30,14 +30,14 @@ export class FileController {
 	}
 
 	public processTranslations(callback: () => void): void {
-		workspace.findFiles('translations/*.json', 'node_modules')
+		workspace.findFiles('translations/*.json', '{node_modules,dist,tmp,app}')
 			.then(
 				files => {
 					this.processTranslationFiles(files, callback);
 				},
 				r => console.log(`cannot find files: ${r.message}`)
 		);
-		workspace.findFiles('app/locales/**/translations.js', 'node_modules')
+		workspace.findFiles('app/locales/**/translations.js', '{node_modules,dist,tmp,app/pods,app/styles,app/validations}')
 			.then(
 				files => {
 					this.processTranslationFiles(files, callback);

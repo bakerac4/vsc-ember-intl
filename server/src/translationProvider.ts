@@ -473,7 +473,7 @@ export class TranslationProvider {
 	private doValidate(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {
 
 		let text = wrap.document.getText();
-		let pattern = /{{t ["|'](.+?)["|']}}/g;
+		let pattern = /[{{|(]t ["|'](.+?)["|'][)|}}]/g;
 		let m: RegExpExecArray | null;
 
 		const trans = this.getSupportedTranslations(wrap.url);
