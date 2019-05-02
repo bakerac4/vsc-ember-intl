@@ -1,10 +1,10 @@
 {
-    "name": "ember-i18n-validator",
+    "name": "vsc-ember-intl",
     "displayName": "Ember i18n validation and more",
     "description": "i18n validation for Ember cli project w/ ember-intl",
     "author": "Adam Baker",
     "license": "MIT",
-    "version": "0.1.2",
+    "version": "0.1.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/bakerac4/vsc-ember-intl"
