@@ -1,8 +1,8 @@
-import { TextDocument, Range, Position } from 'vscode-languageserver';
-import { TransUnit } from "./models/TransUnit";
-import { DocumentWrapper } from './translationProvider';
-import { readFileSync } from 'fs';
 import * as JsonLanguageService from 'vscode-json-languageservice';
+import { TextDocument } from 'vscode-languageserver';
+
+import { DocumentWrapper } from './translationProvider';
+
 export class TranslationParser {
 	private splitUnitsRegex = /<trans-unit(.|\s|\n)*?<\/trans-unit>/gm;
 	private idRegex = /id=["|'](.+?)["|']/m;
@@ -30,7 +30,7 @@ export class TranslationParser {
 			const translations = this.generateTranslations(document, text);
 			const ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
 			const jsonDoc: any = ls.parseJSONDocument(doc);
-			return { units: translations, jsonDoc, lineOffset, characterOffset };
+			return { units: translations, jsonDoc, lineOffset, characterOffset, textDocument: document };
 		}
 		catch (ex) {
 			console.log(ex.message);

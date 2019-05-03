@@ -1,18 +1,25 @@
-import { Position, TextDocument, DiagnosticSeverity, Diagnostic, Connection, TextDocuments, Range, WorkspaceEdit, RegistrationRequest, TextEdit, TextDocumentEdit, TextDocumentIdentifier, VersionedTextDocumentIdentifier, DocumentColorRequest } from 'vscode-languageserver';
-import { Project } from './project.model';
-
-import matcher = require('matcher');
+import { readFileSync } from 'fs';
 import normalize = require('normalize-path');
-import { TranslationParser } from './translationParser';
-import { IdRange, GenerateTranslation, GenerateTranslationCommand, RemoveTranslation } from './models/IdRange';
-import { Translation } from './models/Translation';
+import {
+    Connection,
+    Diagnostic,
+    DiagnosticSeverity,
+    TextDocument,
+    TextDocumentEdit,
+    TextDocuments,
+    TextEdit,
+    VersionedTextDocumentIdentifier,
+    WorkspaceEdit,
+} from 'vscode-languageserver';
+import { uriToFilePath } from 'vscode-languageserver/lib/files';
+
 import { HoverBuilder } from './hoverBuilder';
 import { HoverInfo } from './models/HoverInfo';
-import { readFileSync } from 'fs';
-import { uriToFilePath, FileSystem } from 'vscode-languageserver/lib/files';
+import { GenerateTranslation, GenerateTranslationCommand, IdRange, RemoveTranslation } from './models/IdRange';
+import { Translation } from './models/Translation';
+import { Project } from './project.model';
+import { TranslationParser } from './translationParser';
 import { TransUnitBuilder } from './TransUnitBuilder';
-import * as JsonLanguageService from 'vscode-json-languageservice';
-import { relative } from 'path';
 
 export class TranslationProvider {
 	private projects: Project[] = [];
@@ -46,7 +53,7 @@ export class TranslationProvider {
 			const units = t.units.filter(u => u.id === translationToRemove);
 			if (units.length === 0) { return; }
 			const jsonDoc = t.document;
-			const tDoc = this.getDocument(t.documentUri);
+			const tDoc = t.textDocument;
 			const edits = units.map(u => {
 				const node = this.findValForHover(jsonDoc.root.properties, u.id.split('.'));
 				const start = tDoc.document.positionAt(node.parent.offset + t.characterOffset);
@@ -122,7 +129,7 @@ export class TranslationProvider {
 		const trans = this.translations.find(t => t.uri === command.uri);
 		if (trans) {
 			const documentUri = trans.documentUri;
-			const tDoc = this.getDocument(trans.documentUri);
+			const tDoc = trans.textDocument;
 			const jsonDoc: any = trans.document;
 			
 						
@@ -190,25 +197,27 @@ export class TranslationProvider {
 				});
 				if (expectedWord) {
 					const trans = this.getSupportedTranslations(doc.url);
-					if (trans.length > 0) {
+					if (trans.length > 0 && this.assignProjectToTranslation) {
 						const values = trans.map(t => {
-							const tDoc = this.getDocument(t.documentUri);
-							const jsonDoc: any = t.document;
-							const findTrans = t.units.find(u => u.id === expectedWord.id);
-							const node = this.findValForHover(jsonDoc.root.properties, expectedWord.id.split('.'));
-							const start = tDoc.document.positionAt(node.offset + 1 + t.characterOffset);
-							const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length - 1);
-							return <HoverInfo>{
-								label: t.name,
-								translation: (findTrans && findTrans.value) || '`no translation`',
-								goToCommandArgs: {
-									uri: t.uri,
-									range: {
-										start,
-										end 
+							const tDoc = t.textDocument;
+							if (tDoc) {
+								const jsonDoc: any = t.document;
+								const findTrans = t.units.find(u => u.id === expectedWord.id);
+								const node = this.findValForHover(jsonDoc.root.properties, expectedWord.id.split('.'));
+								const start = tDoc.document.positionAt(node.offset + 1 + t.characterOffset);
+								const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length - 1);
+								return <HoverInfo>{
+									label: t.name,
+									translation: (findTrans && findTrans.value) || '`no translation`',
+									goToCommandArgs: {
+										uri: t.uri,
+										range: {
+											start,
+											end 
+										}
 									}
-								}
-							};
+								};
+							}
 						});
 						return HoverBuilder.createPopup(
 							expectedWord.range,
@@ -531,7 +540,7 @@ export class TranslationProvider {
 	private processTranslationFile(wrap: DocumentWrapper): void {
 		const existTrans = this.translations.find(t => t.uri === wrap.url);
 		const parser = new TranslationParser();
-		const { units, jsonDoc, lineOffset, characterOffset } = parser.getTransUnits(wrap);
+		const { units, jsonDoc, lineOffset, characterOffset, textDocument } = parser.getTransUnits(wrap);
 		const indexOfClosingBodyTags = wrap.document.getText().indexOf('</body>');
 		const insertPosition = wrap.document.positionAt(indexOfClosingBodyTags);
 		if (!existTrans) {
@@ -551,11 +560,16 @@ export class TranslationProvider {
 				name,
 				document: jsonDoc,
 				lineOffset,
-				characterOffset
+				characterOffset,
+				textDocument
 			};
 			this.translations.push(trans);
 		}
 		else {
+			existTrans.textDocument = textDocument;
+			existTrans.characterOffset = characterOffset;
+			existTrans.lineOffset = lineOffset;
+			existTrans.document = jsonDoc;
 			existTrans.units = units;
 			existTrans.insertPosition = insertPosition;
 		}
