@@ -471,8 +471,8 @@ export class TranslationProvider {
 
 	private isTranslationFile(textDocument: TextDocument): boolean {
 		return (textDocument.languageId === 'json' &&
-			textDocument.uri.endsWith('.json')) || (textDocument.languageId === 'javascript' &&
-			textDocument.uri.endsWith('.js'));
+			textDocument.uri.endsWith('.json') && textDocument.uri.includes('translations')) || (textDocument.languageId === 'javascript' &&
+			textDocument.uri.endsWith('translations.js'));
 	}
 
 	private isHtmlFile(textDocument: TextDocument): boolean {

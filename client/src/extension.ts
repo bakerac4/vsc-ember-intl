@@ -1,19 +1,14 @@
 import * as path from 'path';
-import { workspace, ExtensionContext, commands, languages, window, Uri, WorkspaceEdit } from 'vscode';
+import { commands, ExtensionContext, languages, Uri, window, workspace } from 'vscode';
+import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 
-import {
-	LanguageClient,
-	LanguageClientOptions,
-	ServerOptions,
-	TransportKind
-} from 'vscode-languageclient';
+import RettouaCommands, { CodeActionsController } from './codeactions.controller';
+import { CompletionItemController } from './completionItem.controller';
+import { DefinitionController } from './definition.controller';
 import { FileController } from './file.controller';
 import { HoverController } from './hover.controller';
-import { DefinitionController } from "./definition.controller";
-import { ReferenceController } from "./reference.controller";
-import RettouaCommands, { CodeActionsController } from './codeactions.controller';
+import { ReferenceController } from './reference.controller';
 import { RenameController } from './rename.controller';
-import { CompletionItemController } from './completionItem.controller';
 
 let client: LanguageClient;
 
