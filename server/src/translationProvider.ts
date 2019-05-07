@@ -235,7 +235,6 @@ export class TranslationProvider {
 								const node = this.findValForHover(jsonDoc.root.properties, expectedWord.id.split('.'));
 								const start = tDoc.document.positionAt(node.offset + 1 + t.characterOffset);
 								const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length - 1);
-							
 								if (findTrans) {
 									return {
 										uri: t.uri,
@@ -244,6 +243,27 @@ export class TranslationProvider {
 											end 
 										}
 									};
+								} else {
+									//Otherwise find the closest parent
+									let keyArray = expectedWord.id.split('.');
+									let i = 0;
+									let foundNode = null;
+									for (i; i < expectedWord.id.split('.').length; i++) {
+										keyArray.pop();
+										const node = this.findValForHover(jsonDoc.root.properties, keyArray);
+										if (node) {
+											//dont add one to start and subtract one from end because we want to include the quotes
+											const start = tDoc.document.positionAt(node.offset + t.characterOffset);
+											const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length);
+											return {
+												uri: t.uri,
+												range: {
+													start,
+													end 
+												}
+											};
+										}
+									}
 								}
 							}
 						});
