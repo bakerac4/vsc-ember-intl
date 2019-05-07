@@ -9,7 +9,7 @@ import {
     TextDocuments,
     TextEdit,
     VersionedTextDocumentIdentifier,
-    WorkspaceEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { uriToFilePath } from 'vscode-languageserver/lib/files';
 
@@ -103,6 +103,7 @@ export class TranslationProvider {
 				return node;
 			}
 		} else {
+			path.unshift(key);
 			return;
 		}
 	}
@@ -131,23 +132,12 @@ export class TranslationProvider {
 			const documentUri = trans.documentUri;
 			const tDoc = trans.textDocument;
 			const jsonDoc: any = trans.document;
-			
-						
-			// let ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
-			// const doc = this.getDocument(documentUri);
-			// const jsonDoc: any = ls.parseJSONDocument(doc.document);
 			const keyArray = command.word.split('.');
 			const value = command.source;
-			const key = keyArray[keyArray.length - 1];
-			
 			const node = this.findValForGenerate(jsonDoc.root.properties, keyArray);
-			const start = tDoc.document.positionAt(node.valueNode.children[0].offset + trans.characterOffset);
-			const end = tDoc.document.positionAt(node.valueNode.children[0].offset + trans.characterOffset);
-			// let position = Position.create(0, 0);
-			// const list = await ls.doComplete(doc.document, position, jsonDoc);
-			// const object = JSON.parse(doc.document.getText());
-			
+			const start = tDoc.document.positionAt(node.valueNode.children[0].offset + trans.characterOffset);		
 
+			let edit = TextEdit.insert(start, TransUnitBuilder.createTransUnit(keyArray, value || ""));
 			let workspaceEdit = {
 				documentChanges:
 					[{
@@ -157,16 +147,11 @@ export class TranslationProvider {
 							uri: documentUri
 						},
 						edits: [
-							{
-								newText: TransUnitBuilder.createTransUnit(key, value || ""),
-								range: {
-									start,
-									end
-								}
-							}
+							edit
 						]
 					}]
 			};
+			
 			this.connection.workspace.applyEdit(workspaceEdit);
 		}
 	}
@@ -243,12 +228,43 @@ export class TranslationProvider {
 					const trans = this.getSupportedTranslations(doc.url);
 					if (trans.length > 0) {
 						const locations = trans.map(t => {
-							const findTrans = t.units.find(u => u.id === expectedWord.id);
-							if (findTrans) {
-								return {
-									uri: t.uri,
-									range: findTrans.targetRange
-								};
+							const tDoc = t.textDocument;
+							if (tDoc) {
+								const jsonDoc: any = t.document;
+								const findTrans = t.units.find(u => u.id === expectedWord.id);
+								const node = this.findValForHover(jsonDoc.root.properties, expectedWord.id.split('.'));
+								const start = tDoc.document.positionAt(node.offset + 1 + t.characterOffset);
+								const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length - 1);
+								if (findTrans) {
+									return {
+										uri: t.uri,
+										range: {
+											start,
+											end 
+										}
+									};
+								} else {
+									//Otherwise find the closest parent
+									let keyArray = expectedWord.id.split('.');
+									let i = 0;
+									let foundNode = null;
+									for (i; i < expectedWord.id.split('.').length; i++) {
+										keyArray.pop();
+										const node = this.findValForHover(jsonDoc.root.properties, keyArray);
+										if (node) {
+											//dont add one to start and subtract one from end because we want to include the quotes
+											const start = tDoc.document.positionAt(node.offset + t.characterOffset);
+											const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length);
+											return {
+												uri: t.uri,
+												range: {
+													start,
+													end 
+												}
+											};
+										}
+									}
+								}
 							}
 						});
 						return locations;
@@ -482,7 +498,9 @@ export class TranslationProvider {
 	private doValidate(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {
 
 		let text = wrap.document.getText();
-		let pattern = /[{{|(]t ["|'](.+?)["|'][)|}}]/g;
+		// let pattern = /[{|(]+t ["|'](.*?)["|'][)|}}]+/g;
+		// let pattern = /[{|(]+t (?:"([^"\\]*(?:\\.[^"\\]*)*)"|(\S+))/g;
+		let pattern = /[{|(]+t ["|']([^"|']*)["|'].*[)|}]+/g;
 		let m: RegExpExecArray | null;
 
 		const trans = this.getSupportedTranslations(wrap.url);
