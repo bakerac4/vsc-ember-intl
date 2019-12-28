@@ -22,7 +22,6 @@ export async function activate(context: ExtensionContext) {
 	let serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: {
-			port: 6009,
 			module: serverModule,
 			transport: TransportKind.ipc,
 			options: debugOptions
@@ -67,21 +66,25 @@ export async function activate(context: ExtensionContext) {
 
 				fileController.processHtmlFiles(projects, (urls: any[]) => {
 					client.sendNotification('custom/htmlFiles', [urls]);
+
+					fileController.processJsFiles(projects, (urls: any[]) => {
+						client.sendNotification('custom/jsFiles', [urls]);
+					});
 				});
 			});
 		});
 
 	});
 
-	languages.registerHoverProvider({ scheme: 'file', language: 'handlebars' }, {
+	languages.registerHoverProvider([{ scheme: 'file', language: 'handlebars' }, { scheme: 'file', language: 'javascript' }], {
 		provideHover: hoverController.getHover.bind(hoverController)
 	});
 
-	languages.registerDefinitionProvider({ scheme: 'file', language: 'handlebars' }, {
+	languages.registerDefinitionProvider([{ scheme: 'file', language: 'handlebars' }, { scheme: 'file', language: 'javascript' }], {
 		provideDefinition: definitionController.getDefinition.bind(definitionController)
 	});
 
-	languages.registerReferenceProvider({ scheme: 'file', language: 'handlebars' }, {
+	languages.registerReferenceProvider([{ scheme: 'file', language: 'handlebars' }, { scheme: 'file', language: 'javascript' }], {
 		provideReferences: referencesController.getReferences.bind(referencesController)
 	});
 
@@ -94,7 +97,7 @@ export async function activate(context: ExtensionContext) {
 		prepareRename: renameController.prepareRename.bind(renameController)
 	});
 
-	languages.registerCompletionItemProvider({ scheme: 'file', language: 'handlebars' }, {
+	languages.registerCompletionItemProvider([{ scheme: 'file', language: 'handlebars' }, { scheme: 'file', language: 'javascript' }], {
 		provideCompletionItems: completionItemController.getItems.bind(completionItemController)
 	});
 

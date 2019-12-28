@@ -92,6 +92,10 @@ connection.onNotification("custom/htmlFiles", (urls: any[]) => {
 	translationProvider.onHtmlFilesFound(urls);
 });
 
+connection.onNotification("custom/jsFiles", (urls: any[]) => {
+	translationProvider.onJsFilesFound(urls);
+});
+
 connection.onNotification("custom/generate_translations", (commands: GenerateTranslationCommand[]) => {
 	translationProvider.onGenerateTranslations(commands);
 });

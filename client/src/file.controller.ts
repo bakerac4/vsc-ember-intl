@@ -29,6 +29,20 @@ export class FileController {
 		});
 	}
 
+	public processJsFiles(projects: Project[], callback: (urls: Uri[]) => void): void {
+		let workspaceFolder = workspace.workspaceFolders[0].uri.path;
+		projects.forEach(project => {
+			const url = `${workspaceFolder}/${project.root}`;
+			workspace.findFiles(new RelativePattern(url, '**/*.js'), 'node_modules').then(res => {
+				const urls = res.map(r => <any>{
+					path: r.path,
+					fsPath: r.fsPath
+				});
+				callback(urls);
+			});
+		});
+	}
+
 	public processTranslations(callback: () => void): void {
 		workspace.findFiles('translations/*.json', '{node_modules,dist,tmp,app}')
 			.then(

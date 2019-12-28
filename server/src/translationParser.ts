@@ -30,7 +30,7 @@ export class TranslationParser {
 			const translations = this.generateTranslations(document, text);
 			const ls = JsonLanguageService.getLanguageService({ clientCapabilities: JsonLanguageService.ClientCapabilities.LATEST });
 			const jsonDoc: any = ls.parseJSONDocument(doc);
-			return { units: translations, jsonDoc, lineOffset, characterOffset, textDocument: document };
+			return { units: translations, jsonDoc, lineOffset, characterOffset, textDocument: doc };
 		}
 		catch (ex) {
 			console.log(ex.message);
