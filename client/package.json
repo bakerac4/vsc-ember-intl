@@ -10,17 +10,16 @@
         "url": "https://github.com/bakerac4/vsc-ember-intl"
     },
     "engines": {
-        "vscode": "^1.25.0"
+        "vscode": "^1.26.0"
     },
     "scripts": {
-        "update-vscode": "vscode-install",
-        "postinstall": "vscode-install"
+        "update-vscode": "vscode-install"
     },
     "dependencies": {
-        "vscode-languageclient": "^4.1.4",
+        "vscode-languageclient": "^5.2.1",
         "node.extend": ">=1.1.7"
     },
     "devDependencies": {
-        "vscode": "^1.1.21"
+        "@types/vscode": "^1.41.0"
     }
 }

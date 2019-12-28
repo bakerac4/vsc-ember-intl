@@ -44,7 +44,17 @@ export class TranslationProvider {
 			const content = buffer.toString();
 			const doc = TextDocument.create(url.path, 'hbs', 1, content);
 			const wrap = this.getDocument(doc);
-			this.doValidate(wrap, false);
+			this.doValidateHBS(wrap, false);
+		});
+	}
+
+	public onJsFilesFound(urls: { fsPath: string, path: string }[]): void {
+		urls.forEach(url => {
+			const buffer = readFileSync(url.fsPath);
+			const content = buffer.toString();
+			const doc = TextDocument.create(url.path, 'javascript', 1, content);
+			const wrap = this.getDocument(doc);
+			this.doValidateJS(wrap, false);
 		});
 	}
 
@@ -56,9 +66,9 @@ export class TranslationProvider {
 			const tDoc = t.textDocument;
 			const edits = units.map(u => {
 				const node = this.findValForHover(jsonDoc.root.properties, u.id.split('.'));
-				const start = tDoc.document.positionAt(node.parent.offset + t.characterOffset);
+				const start = tDoc.positionAt(node.parent.offset + t.characterOffset);
 				//+ 1 to account for comma at end
-				const end = tDoc.document.positionAt(node.parent.offset + node.parent.length + t.characterOffset + 1);
+				const end = tDoc.positionAt(node.parent.offset + node.parent.length + t.characterOffset + 1);
 				return TextEdit.replace({
 					start,
 					end 
@@ -135,7 +145,7 @@ export class TranslationProvider {
 			const keyArray = command.word.split('.');
 			const value = command.source;
 			const node = this.findValForGenerate(jsonDoc.root.properties, keyArray);
-			const start = tDoc.document.positionAt(node.valueNode.children[0].offset + trans.characterOffset);		
+			const start = tDoc.positionAt(node.valueNode.children[0].offset + trans.characterOffset);		
 
 			let edit = TextEdit.insert(start, TransUnitBuilder.createTransUnit(keyArray, value || ""));
 			let workspaceEdit = {
@@ -167,12 +177,13 @@ export class TranslationProvider {
 			this.processTranslationFile(this.getDocument(textDocument));
 		} else if (this.isHtmlFile(textDocument)) {
 			this.processHtmlFile(textDocument);
+		} else if (this.isJsFile(textDocument)) {
+			this.processJsFile(textDocument);
 		}
 	}
 
 	public calculateHover(url: string, position: number): any {
 		const doc = this.getDocument(url);
-		console.log(`Doc: ${doc}`);
 		if (doc) {
 			const activeWords = <IdRange[]>this.words[doc.url];
 			if (activeWords && activeWords.length > 0) {
@@ -189,8 +200,8 @@ export class TranslationProvider {
 								const jsonDoc: any = t.document;
 								const findTrans = t.units.find(u => u.id === expectedWord.id);
 								const node = this.findValForHover(jsonDoc.root.properties, expectedWord.id.split('.'));
-								const start = tDoc.document.positionAt(node.offset + 1 + t.characterOffset);
-								const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length - 1);
+								const start = tDoc.positionAt(node.offset + 1 + t.characterOffset);
+								const end = tDoc.positionAt(node.offset + t.characterOffset + node.length - 1);
 								return <HoverInfo>{
 									label: t.name,
 									translation: (findTrans && findTrans.value) || '`no translation`',
@@ -233,8 +244,8 @@ export class TranslationProvider {
 								const jsonDoc: any = t.document;
 								const findTrans = t.units.find(u => u.id === expectedWord.id);
 								const node = this.findValForHover(jsonDoc.root.properties, expectedWord.id.split('.'));
-								const start = tDoc.document.positionAt(node.offset + 1 + t.characterOffset);
-								const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length - 1);
+								const start = tDoc.positionAt(node.offset + 1 + t.characterOffset);
+								const end = tDoc.positionAt(node.offset + t.characterOffset + node.length - 1);
 								if (findTrans) {
 									return {
 										uri: t.uri,
@@ -253,8 +264,8 @@ export class TranslationProvider {
 										const node = this.findValForHover(jsonDoc.root.properties, keyArray);
 										if (node) {
 											//dont add one to start and subtract one from end because we want to include the quotes
-											const start = tDoc.document.positionAt(node.offset + t.characterOffset);
-											const end = tDoc.document.positionAt(node.offset + t.characterOffset + node.length);
+											const start = tDoc.positionAt(node.offset + t.characterOffset);
+											const end = tDoc.positionAt(node.offset + t.characterOffset + node.length);
 											return {
 												uri: t.uri,
 												range: {
@@ -474,13 +485,24 @@ export class TranslationProvider {
 			return;
 		}
 		const wrap = this.getDocument(textDocument);
-		this.doValidate(wrap);
+		this.doValidateHBS(wrap);
+	}
+
+	private processJsFile(textDocument: TextDocument): void {
+		if (!this.projects || Object.keys(this.translations).length === 0) {
+			return;
+		}
+		const wrap = this.getDocument(textDocument);
+		this.doValidateJS(wrap);
 	}
 
 	private validateHtmlDocuments(): void {
 		this.documents.all().forEach(textDocument => {
 			if (this.isHtmlFile(textDocument)) {
 				this.processHtmlFile(textDocument);
+			}
+			if (this.isJsFile(textDocument)) {
+				this.processJsFile(textDocument);
 			}
 		});
 	}
@@ -495,12 +517,26 @@ export class TranslationProvider {
 		return textDocument.languageId === 'handlebars';
 	}
 
-	private doValidate(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {
+	private isJsFile(textDocument: TextDocument): boolean {
+		return textDocument.languageId === 'javascript';
+	}
+
+
+	private doValidateHBS(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {
+		const hbsFileRegExp = /[{|(]+t ["|']([^"|']*)["|'].*[)|}]+/g;
+		this.doValidate(wrap, hbsFileRegExp, withDiagnistics);
+	}
+
+	private doValidateJS(wrap: DocumentWrapper, withDiagnistics: boolean = true): void {
+		const jsFileRegExp = /[^\w]t\(["|']([^"|']*)["|'].*\)/g;
+		this.doValidate(wrap, jsFileRegExp, withDiagnistics);
+	}
+
+	private doValidate(wrap: DocumentWrapper, pattern: RegExp, withDiagnistics: boolean = true): void {
 
 		let text = wrap.document.getText();
 		// let pattern = /[{|(]+t ["|'](.*?)["|'][)|}}]+/g;
 		// let pattern = /[{|(]+t (?:"([^"\\]*(?:\\.[^"\\]*)*)"|(\S+))/g;
-		let pattern = /[{|(]+t ["|']([^"|']*)["|'].*[)|}]+/g;
 		let m: RegExpExecArray | null;
 
 		const trans = this.getSupportedTranslations(wrap.url);

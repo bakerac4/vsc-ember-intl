@@ -16,7 +16,7 @@
         "multi-root ready"
     ],
     "engines": {
-        "vscode": "^1.25.0"
+        "vscode": "^1.26.0"
     },
     "activationEvents": [
         "onLanguage:handlebars",
@@ -34,9 +34,9 @@
     },
     "devDependencies": {
         "@types/mocha": "^5.2.6",
-        "@types/node": "^8.10.42",
+        "@types/node": "^10.0.4",
         "tslint": "^5.13.1",
-        "typescript": "^3.3.3333"
+        "typescript": "^3.7.3"
     },
     "dependencies": {
         "fs-extra": "^7.0.1"
